@@ -1,0 +1,38 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>Smart Resume Parser</title>
+</head>
+<body>
+    <h2>Upload Your Resume (PDF)</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="resume" accept="application/pdf" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <h3>Extracted Text Preview:</h3>
+    <pre id="result" style="white-space: pre-wrap; border: 1px solid #ccc; padding: 10px;"></pre>
+
+    <script>
+        document.getElementById("uploadForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            const response = await fetch("/upload", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.extracted_text) {
+                document.getElementById("result").textContent = data.extracted_text;
+            } else {
+                document.getElementById("result").textContent = "Error: " + JSON.stringify(data);
+            }
+        });
+    </script>
+</body>
+</html>

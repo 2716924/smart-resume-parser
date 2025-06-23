@@ -1,0 +1,88 @@
+<!-- templates/leaderboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>Resume Ranker</title>
+</head>
+<body>
+    <h2>Resume Ranking vs Job Description</h2>
+
+    <form id="jdForm" enctype="multipart/form-data">
+        <textarea name="jd_text" placeholder="Paste job description here..." rows="8" cols="80"></textarea><br>
+        <button type="submit">Upload Job Description</button>
+    </form>
+
+    <hr>
+
+    <form id="resumesForm" enctype="multipart/form-data">
+        <input type="file" name="resume_files" multiple accept="application/pdf">
+        <button type="submit">Upload and Rank Resumes</button>
+    </form>
+
+    <h3>Results:</h3>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Filename</th>
+                <th>Score</th>
+                <th>Matching Skills</th>
+                <th>Missing Skills</th>
+                <th>Experience</th>
+            </tr>
+        </thead>
+        <tbody id="results"></tbody>
+    </table>
+
+    <script>
+        let jdUploaded = false;
+
+        document.getElementById("jdForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const res = await fetch("/upload_jd", {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            jdUploaded = !data.error;
+            alert(jdUploaded ? "JD uploaded successfully!" : "Error: " + data.error);
+        });
+
+        document.getElementById("resumesForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            if (!jdUploaded) {
+                alert("Please upload a Job Description first!");
+                return;
+            }
+
+            const files = this.resume_files.files;
+            const table = document.getElementById("results");
+            table.innerHTML = "";  // Clear previous results
+
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append("resume", file);
+
+                const res = await fetch("/match_resume", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await res.json();
+
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${data.filename}</td>
+                    <td>${data.total_score}</td>
+                    <td>${data.matching_skills.join(", ")}</td>
+                    <td>${data.missing_skills.join(", ")}</td>
+                    <td>${data.resume_experience} yrs (required: ${data.jd_experience_required} yrs)</td>
+                `;
+                table.appendChild(row);
+            }
+        });
+    </script>
+</body>
+</html>
